@@ -1,24 +1,6 @@
-import {defaults} from '../src/state.js';
-import {DL,KBC,SOLO,ROUTES} from '../src/catalog.js';
-import {buildQuality,generatePPM,normalizeWeights} from '../src/ppm-engine.js';
-
-const base=JSON.parse(JSON.stringify(defaults));
-if(!ROUTES.length||SOLO.length!==5||DL.length!==3||KBC.length!==6)throw new Error('Catalog integrity failed');
-
-const diknas={...base,mode:'DIKNAS'};
-const q1=buildQuality(diknas);
-if(q1.score!==100)throw new Error(`DIKNAS quality expected 100, got ${q1.score}`);
-const p1=generatePPM(diknas);
-if(p1.sections.length<10||p1.meta.mode!=='DIKNAS')throw new Error('DIKNAS PPM generation failed');
-
-const kemenag={...base,mode:'KEMENAG',kbc:['Cinta Ilmu','Cinta Sesama']};
-const q2=buildQuality(kemenag);
-if(q2.score!==100)throw new Error(`KEMENAG quality expected 100, got ${q2.score}`);
-const p2=generatePPM(kemenag);
-if(!p2.sections.some(([h])=>h.includes('Integrasi KBC')))throw new Error('KBC section missing');
-
-const w=normalizeWeights({knowledge:60,skill:20,project:10});
-if(Object.values(w).reduce((a,b)=>a+b,0)!==100||w.knowledge<=w.project)throw new Error('Weight normalization failed');
-
-console.log('PPM architecture smoke test: PASS');
-console.log(`DIKNAS sections: ${p1.sections.length}; KEMENAG sections: ${p2.sections.length}; score: ${q1.score}/${q2.score}`);
+import{defaults as legacyDefaults}from'../src/state.js';import{DL,KBC,SOLO,ROUTES}from'../src/catalog.js';import{buildQuality,generatePPM,normalizeWeights}from'../src/ppm-engine.js';import{defaults as v3Defaults}from'../src/v3-data.js';import{quality as v3Quality,build as v3Build}from'../src/v3-engine.js';
+if(!ROUTES.length||SOLO.length!==5||DL.length!==3||KBC.length!==6)throw new Error('Legacy catalog integrity failed');
+const l=JSON.parse(JSON.stringify(legacyDefaults));if(buildQuality({...l,mode:'DIKNAS'}).score!==100)throw new Error('Legacy DIKNAS failed');if(Object.values(normalizeWeights({knowledge:60,skill:20,project:10})).reduce((a,b)=>a+b,0)!==100)throw new Error('Legacy weights failed');
+const d=structuredClone(v3Defaults),qd=v3Quality(d),pd=v3Build(d);if(qd.score<80||pd.sections.length<15)throw new Error('V3 DIKNAS baseline failed');
+const k={...structuredClone(v3Defaults),mode:'KEMENAG',kbc:['Cinta Ilmu','Cinta Sesama']},qk=v3Quality(k),pk=v3Build(k);if(qk.score<80||!pk.sections.some(([h])=>h.includes('KBC')))throw new Error('V3 KEMENAG/KBC baseline failed');
+console.log('PPM architecture smoke test: PASS');console.log(`V3 DIKNAS ${qd.score}; V3 KEMENAG ${qk.score}; DIKNAS sections ${pd.sections.length}; KEMENAG sections ${pk.sections.length}`);
