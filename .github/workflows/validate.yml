@@ -1,11 +1,9 @@
 name: Validate Generator PPM
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
 jobs:
   smoke:
     runs-on: ubuntu-latest
@@ -14,5 +12,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run architecture smoke test
+      - name: Check V3 JavaScript syntax
+        run: node --check src/v3-app.js && node --check src/v3-pages.js && node --check src/v3-engine.js && node --check src/v3-data.js
+      - name: Run legacy architecture smoke test
         run: node scripts/smoke.mjs
+      - name: Check production entry
+        run: grep -q 'src/v3-app.js' index.html
+      - name: Check core modules
+        run: test -f src/v3-app.js && test -f src/v3-pages.js && test -f src/v3-engine.js && test -f src/v3-data.js
